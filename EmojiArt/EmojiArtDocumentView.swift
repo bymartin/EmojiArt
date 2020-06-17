@@ -41,6 +41,7 @@ struct EmojiArtDocumentView: View {
                             .font(animatableWithSize: emoji.fontSize * self.zoomScale)
                             .position(self.position(for: emoji, in: geometry.size))
                             .gesture(self.singleTapToSelect(for: emoji))
+                            .gesture(self.dragSelectedEmoji(for: emoji))
                             .shadow(color: self.isEmojiSelected(emoji) ? .black : .clear , radius: 10 )
                         
                     }
@@ -120,6 +121,19 @@ struct EmojiArtDocumentView: View {
         }
     }
     
+    @GestureState private var gestureEmojiOffset: CGSize = .zero
+    
+    private func dragSelectedEmoji(for emoji: EmojiArt.Emoji) -> some Gesture {
+        DragGesture()
+            .updating($gestureEmojiOffset) { latestDragGestureValue, gestureEmojiOffset, transaction in
+                gestureEmojiOffset = latestDragGestureValue.translation / self.zoomScale
+        }
+        .onEnded { finalDragGestureValue in
+            let translation = finalDragGestureValue.translation / self.zoomScale
+            self.document.moveEmoji(emoji, by: translation)
+        }
+    }
+    
     @State private var steadyStatePanOffset: CGSize = .zero
     @GestureState private var gesturePanOffset: CGSize = .zero
     
@@ -148,6 +162,10 @@ struct EmojiArtDocumentView: View {
         location = CGPoint(x: location.x * zoomScale, y: location.y * zoomScale)
         location = CGPoint(x: location.x + size.width/2, y: location.y + size.height/2)
         location = CGPoint(x: location.x + panOffset.width, y: location.y + panOffset.height)
+        if isEmojiSelected(emoji) {
+            location = CGPoint(x: location.x + gestureEmojiOffset.width,
+                               y: location.y + gestureEmojiOffset.height)
+        }
         return location
     }
     
