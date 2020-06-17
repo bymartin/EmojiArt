@@ -38,7 +38,7 @@ struct EmojiArtDocumentView: View {
                     ForEach(self.document.emojis) { emoji in
                         Text(emoji.text)
                             //.font(self.font(for: emoji))
-                            .font(animatableWithSize: emoji.fontSize * self.zoomScale)
+                            .font(animatableWithSize: emoji.fontSize * self.zoomScale(for: emoji))
                             .position(self.position(for: emoji, in: geometry.size))
                             .gesture(self.singleTapToSelect(for: emoji))
                             .gesture(self.dragSelectedEmoji(for: emoji))
@@ -66,6 +66,10 @@ struct EmojiArtDocumentView: View {
     
     @State private var selectedEmojis = Set<EmojiArt.Emoji>()
     
+    private var isThereAnySelection: Bool {
+        !selectedEmojis.isEmpty
+    }
+    
     private func singleTapToSelect(for emoji: EmojiArt.Emoji?) -> some Gesture {
         TapGesture(count: 1)
             .onEnded {
@@ -90,7 +94,16 @@ struct EmojiArtDocumentView: View {
     @GestureState private var gestureZoomScale: CGFloat = 1.0
     
     private var zoomScale: CGFloat {
-        steadyStateZoomScale * gestureZoomScale
+        //steadyStateZoomScale * gestureZoomScale
+        steadyStateZoomScale * (isThereAnySelection ? 1 : gestureZoomScale)
+    }
+    
+    private func zoomScale(for emoji: EmojiArt.Emoji) -> CGFloat {
+        if isEmojiSelected(emoji) {
+            return steadyStateZoomScale * gestureZoomScale
+        } else {
+            return zoomScale
+        }
     }
     
     private func doubleTapToZoom(in size: CGSize) -> some Gesture {
@@ -117,7 +130,15 @@ struct EmojiArtDocumentView: View {
                 gestureZoomScale = latestGestureScale
         }
         .onEnded { finalGestureScale in
-            self.steadyStateZoomScale *= finalGestureScale
+            if self.isThereAnySelection {
+                // zoom selected emojis
+                self.selectedEmojis.forEach { emoji in
+                    self.document.scaleEmoji(emoji, by: finalGestureScale)
+                }
+            } else {
+                // zoom everything
+                self.steadyStateZoomScale *= finalGestureScale
+            }
         }
     }
     
