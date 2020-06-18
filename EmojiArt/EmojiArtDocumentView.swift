@@ -41,6 +41,7 @@ struct EmojiArtDocumentView: View {
                             .font(animatableWithSize: emoji.fontSize * self.zoomScale(for: emoji))
                             .position(self.position(for: emoji, in: geometry.size))
                             .gesture(self.singleTapToSelect(for: emoji))
+                            .gesture(self.longPress(for: emoji))
                             .gesture(self.dragSelectedEmoji(for: emoji))
                             .shadow(color: self.isEmojiSelected(emoji) ? .black : .clear , radius: 10 )
                         
@@ -81,13 +82,18 @@ struct EmojiArtDocumentView: View {
                     // deselect all emojis
                     self.selectedEmojis.removeAll()
                 }
-                
-                
         }
     }
     
     private func isEmojiSelected(_ emoji: EmojiArt.Emoji) -> Bool {
         selectedEmojis.contains(matching: emoji)
+    }
+    
+    private func longPress(for emoji: EmojiArt.Emoji) -> some Gesture {
+        LongPressGesture(minimumDuration: 2)
+            .onEnded { _ in
+                self.document.removeEmoji(emoji)
+            }
     }
     
     @State private var steadyStateZoomScale: CGFloat = 1.0
